@@ -1,0 +1,201 @@
+<div
+  class="fsa-box"
+  [attr.aria-disabled]="isDisabled || isSaving || isProcessing"
+  [ngClass]="{ 'fsa-box--disabled': isDisabled }"
+>
+  <h1></h1>
+  <h2></h2>
+  <h3 class="fsa-heading--3">
+    {{ resources.labels.preClosingPage.setAsideCard.title }}
+  </h3>
+
+  <div class="fsa-divider"></div>
+  
+  <!-- RECOMMENDATION 5: Processing Status Display -->
+  <div *ngIf="processingStatus" class="processing-status-container">
+    <div class="processing-status" [ngClass]="'status-' + processingStatus.status.toLowerCase()">
+      <div class="status-icon">
+        <span *ngIf="processingStatus.status === 'PROCESSING'" class="fsa-spinner"></span>
+        <span *ngIf="processingStatus.status === 'COMPLETED'" class="success-icon">✓</span>
+        <span *ngIf="processingStatus.status === 'FAILED'" class="error-icon">✗</span>
+      </div>
+      <div class="status-content">
+        <div class="status-message">{{ processingStatus.message }}</div>
+        <div *ngIf="processingStatus.status === 'PROCESSING'" class="progress-steps">
+          <div class="progress-step" [ngClass]="{ 'active': currentStep === 'FORM_FILLING_STARTED' }">
+            Generating Forms
+          </div>
+          <div class="progress-step" [ngClass]="{ 'active': currentStep === 'PDF_GENERATION_STARTED' }">
+            Creating PDFs
+          </div>
+          <div class="progress-step" [ngClass]="{ 'active': currentStep === 'UPLOAD_STARTED' }">
+            Uploading Documents
+          </div>
+        </div>
+        <div *ngIf="processingStatus.status === 'COMPLETED' && processingStatus.result" class="completion-details">
+          <p><strong>Document:</strong> {{ processingStatus.result.documentName }}</p>
+          <p *ngIf="processingStatus.result.totalFormsGenerated > 1">
+            <strong>Forms Generated:</strong> {{ processingStatus.result.totalFormsGenerated }}
+          </p>
+        </div>
+        <div *ngIf="processingStatus.error" class="error-details">
+          <p class="error-message">{{ processingStatus.error }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="fsa-divider"></div>
+  </div>
+
+  <form class="fsa-form" [formGroup]="setAsideForm" (ngSubmit)="onSubmit()">
+    <div class="set-aside-type-section">
+      <ul class="fsa-form-list" aria-label="Set-Aside Type options">
+        <li>
+          <input
+            class="fsa-radio"
+            id="dbsaId"
+            type="radio"
+            value="DBSA"
+            formControlName="setAsideType"
+            [ngClass]="{ 'fsa-input--saving': isSaving || isProcessing }"
+            [disabled]="isProcessing"
+          />
+          <label for="dbsaId">{{
+            resources.labels.preClosingPage.setAsideCard
+              .distressedBorrowerSetAside
+          }}</label>
+        </li>
+        <li>
+          <input
+            class="fsa-radio"
+            id="dsaId"
+            type="radio"
+            value="DSA"
+            formControlName="setAsideType"
+            [ngClass]="{ 'fsa-input--saving': isSaving || isProcessing }"
+            [disabled]="isProcessing"
+          />
+          <label for="dsaId">{{
+            resources.labels.preClosingPage.setAsideCard.disasterSetAside
+          }}</label>
+        </li>
+      </ul>
+    </div>
+
+    <div class="fsa-divider fsa-divider--strong"></div>
+    <div class="fields-section">
+      <!-- Disaster Code -->
+      <div class="fsa-field fsa-field--inline">
+        <label class="fsa-field__label" for="disasterCode">{{
+          resources.labels.preClosingPage.setAsideCard.disasterCode
+        }}</label>
+        <div
+          *ngIf="
+            setAsideForm.get('setAsideType')?.value === 'DBSA';
+            else inputField
+          "
+        >
+          <span id="disasterCode" class="fsa-field__item">{{
+            setAsideForm.get("disasterCode")?.value
+          }}</span>
+        </div>
+        <ng-template #inputField>
+          <input
+            class="fsa-input fsa-field__item"
+            id="disasterCode"
+            type="text"
+            formControlName="disasterCode"
+            aria-describedby="disasterCodeHelp"
+            [ngClass]="{ 'fsa-input--saving': isSaving || isProcessing }"
+            [disabled]="isProcessing"
+          />
+        </ng-template>
+      </div>
+
+      <!-- Approval Date (Static) -->
+      <div class="fsa-field fsa-field--inline">
+        <label class="fsa-field__label" for="approvalDate">{{
+          resources.labels.preClosingPage.setAsideCard.approvalDate
+        }}</label>
+        <span
+          id="approvalDate"
+          class="fsa-field__item"
+          [ngClass]="{ 'fsa-field__item--disabled': isDisabled || isSaving || isProcessing }"
+          >{{
+            setAsideForm.get("approvalDate")?.value | date : "MM/dd/yyyy"
+          }}</span
+        >
+      </div>
+
+      <!-- Installment Date -->
+      <div class="fsa-field fsa-field--inline">
+        <label class="fsa-field__label" for="installmentDate">{{
+          resources.labels.preClosingPage.setAsideCard.installmentDate
+        }}</label>
+        <select
+          class="fsa-select fsa-field__item"
+          id="installmentDate"
+          formControlName="installmentDate"
+          aria-describedby="installmentDateHelp"
+          [ngClass]="{ 'fsa-input--saving': isSaving || isProcessing }"
+          [disabled]="isProcessing"
+        >
+          <option *ngFor="let date of installmentDates" [value]="date.value">
+            {{ date.label }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Set-Aside Amount -->
+      <div class="fsa-field fsa-field--inline">
+        <label class="fsa-field__label" for="setAsideAmount">{{
+          resources.labels.preClosingPage.setAsideCard.setAsideAmount
+        }}</label>
+        <fsa-money-input
+          class="fsa-field__item"
+          [control]="setAsideAmountControl"
+          [max_length]="6"
+          [id]="'setAsideAmount'"
+          [ngClass]="{ 'fsa-input--saving': isSaving || isProcessing }"
+          [disabled]="isProcessing"
+          aria-describedby="setAsideAmountHelp"
+        ></fsa-money-input>
+      </div>
+
+      <!-- Payment After Installment Date -->
+      <div class="fsa-field fsa-field--inline">
+        <label class="fsa-field__label" for="paymentAfterInstallment">{{
+          resources.labels.preClosingPage.setAsideCard.paymentAfterInstallment
+        }}</label>
+        <fsa-money-input
+          class="fsa-field__item"
+          [control]="paymentAfterInstallmentControl"
+          [max_length]="6"
+          [id]="'paymentAfterInstallment'"
+          [ngClass]="{ 'fsa-input--saving': isSaving || isProcessing }"
+          [disabled]="isProcessing"
+          aria-describedby="paymentAfterInstallmentHelp"
+        ></fsa-money-input>
+      </div>
+
+      <!-- Save Button -->
+      <div class="fsa-field" *ngIf="!isDisabled">
+        <button
+          class="fsa-btn fsa-btn--primary fsa-btn--loading"
+          type="submit"
+          [disabled]="setAsideForm.invalid || isSaving || isProcessing"
+        >
+          <span class="fsa-btn__content">
+            <span *ngIf="!isSaving && !isProcessing">{{
+              resources.labels.preClosingPage.setAsideCard.saveButton
+            }}</span>
+            <span *ngIf="isSaving && !isProcessing">Saving...</span>
+            <span *ngIf="isProcessing">Processing...</span>
+            <span *ngIf="isSaving || isProcessing" class="fsa-spinner"></span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<error-growl [formErrors]="formErrors"></error-growl>
